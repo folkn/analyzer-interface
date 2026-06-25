@@ -3,9 +3,13 @@ import * as d3 from 'd3';
 import { useMarkerStore } from '../store/markerStore';
 import type { TraceData } from '../types';
 import { interpolatePoint } from '../utils/sparams';
+import { getChartColors } from '../store/settingsStore';
+
+type ChartColors = ReturnType<typeof getChartColors>;
 
 interface Props {
   s11: TraceData | null;
+  colors: ChartColors;
 }
 
 const W = 320;
@@ -14,17 +18,14 @@ const CX = W / 2;
 const CY = H / 2;
 const R = W / 2 - 20;
 
-/** Convert reflection coefficient (re,im) to SVG coords */
 function gammaToXY(re: number, im: number): [number, number] {
   return [CX + re * R, CY - im * R];
 }
 
-/** Convert SVG coords to gamma */
 function xyToGamma(x: number, y: number): [number, number] {
   return [(x - CX) / R, -(y - CY) / R];
 }
 
-/** Build arc path for constant-resistance circle r */
 function resistanceCircle(r: number): string {
   const center = r / (1 + r);
   const radius = 1 / (1 + r);
@@ -34,14 +35,12 @@ function resistanceCircle(r: number): string {
   return `M ${x - rPx} ${y} A ${rPx} ${rPx} 0 1 1 ${x - rPx + 0.001} ${y}`;
 }
 
-/** Build arc path for constant-reactance circle x (upper half for +x, lower for -x) */
 function reactanceArc(x: number): string {
   const cy = 1 / x;
   const r = Math.abs(1 / x);
   const centerX = CX + R;
   const centerY = CY - cy * R;
   const rPx = r * R;
-  // Clip arc to unit circle - approximate with a long arc
   const startAngle = x > 0 ? Math.PI : -Math.PI;
   const sweep = x > 0 ? -Math.PI : Math.PI;
   const x1 = centerX + rPx * Math.cos(startAngle);
@@ -53,7 +52,7 @@ function reactanceArc(x: number): string {
   return `M ${x1} ${y1} A ${rPx} ${rPx} 0 ${large} ${sweepFlag} ${x2} ${y2}`;
 }
 
-export default function SmithChart({ s11 }: Props) {
+export default function SmithChart({ s11, colors }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const { markers, activeMarkerId, setActive, setMarkerFreq, addMarker } = useMarkerStore();
 
@@ -63,9 +62,8 @@ export default function SmithChart({ s11 }: Props) {
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
     const [re, im] = xyToGamma(sx, sy);
-    if (re * re + im * im > 1.02) return; // outside unit circle
+    if (re * re + im * im > 1.02) return;
 
-    // Find nearest frequency point on s11 trace
     let bestFreq = s11.points[0]?.freq ?? 1e8;
     let bestDist = Infinity;
     for (const p of s11.points) {
@@ -80,6 +78,7 @@ export default function SmithChart({ s11 }: Props) {
     }
   }, [s11, activeMarkerId, setMarkerFreq, addMarker]);
 
+  // Redraw grid whenever colors change (theme switch)
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
@@ -87,50 +86,46 @@ export default function SmithChart({ s11 }: Props) {
 
     const grid = svg.append('g').attr('class', 'smith-grid');
 
-    // Unit circle
     grid.append('circle')
       .attr('cx', CX).attr('cy', CY).attr('r', R)
-      .attr('stroke', '#334155').attr('fill', '#0f172a').attr('stroke-width', 1.5);
+      .attr('stroke', colors.smithRing)
+      .attr('fill', colors.smithBg)
+      .attr('stroke-width', 1.5);
 
-    // Real axis
     grid.append('line')
       .attr('x1', CX - R).attr('y1', CY).attr('x2', CX + R).attr('y2', CY)
-      .attr('stroke', '#334155').attr('stroke-width', 0.8);
+      .attr('stroke', colors.smithRing).attr('stroke-width', 0.8);
 
-    // Resistance circles
     for (const r of [0, 0.2, 0.5, 1, 2, 5]) {
       grid.append('path')
         .attr('d', resistanceCircle(r))
-        .attr('stroke', r === 1 ? '#4b5563' : '#1e293b')
+        .attr('stroke', r === 1 ? colors.smithGridBold : colors.smithGrid)
         .attr('stroke-width', r === 0 ? 1.5 : 0.8)
         .attr('fill', 'none')
         .attr('clip-path', `circle(${R}px at ${CX}px ${CY}px)`);
-      // Label
       const cx = (r / (1 + r)) * R + CX;
       if (r > 0) {
         grid.append('text')
           .attr('x', cx).attr('y', CY - 4)
-          .attr('fill', '#4b5563').attr('font-size', 9).attr('text-anchor', 'middle')
+          .attr('fill', colors.smithText).attr('font-size', 9).attr('text-anchor', 'middle')
           .text(r);
       }
     }
 
-    // Reactance arcs
     for (const x of [0.2, 0.5, 1, 2, 5, -0.2, -0.5, -1, -2, -5]) {
       grid.append('path')
         .attr('d', reactanceArc(x))
-        .attr('stroke', '#1e293b').attr('stroke-width', 0.8)
+        .attr('stroke', colors.smithGrid).attr('stroke-width', 0.8)
         .attr('fill', 'none')
         .attr('clip-path', `circle(${R}px at ${CX}px ${CY}px)`);
     }
 
-    // Outer ring labels
-    grid.append('text').attr('x', CX + R + 5).attr('y', CY + 4).attr('fill', '#6b7280').attr('font-size', 9).text('1');
-    grid.append('text').attr('x', CX - R - 5).attr('y', CY + 4).attr('fill', '#6b7280').attr('font-size', 9).attr('text-anchor', 'end').text('-1');
-    grid.append('text').attr('x', CX + 4).attr('y', CY - R - 4).attr('fill', '#6b7280').attr('font-size', 9).text('+j');
-    grid.append('text').attr('x', CX + 4).attr('y', CY + R + 12).attr('fill', '#6b7280').attr('font-size', 9).text('-j');
+    grid.append('text').attr('x', CX + R + 5).attr('y', CY + 4).attr('fill', colors.smithText).attr('font-size', 9).text('1');
+    grid.append('text').attr('x', CX - R - 5).attr('y', CY + 4).attr('fill', colors.smithText).attr('font-size', 9).attr('text-anchor', 'end').text('-1');
+    grid.append('text').attr('x', CX + 4).attr('y', CY - R - 4).attr('fill', colors.smithText).attr('font-size', 9).text('+j');
+    grid.append('text').attr('x', CX + 4).attr('y', CY + R + 12).attr('fill', colors.smithText).attr('font-size', 9).text('-j');
 
-  }, []);
+  }, [colors]);
 
   useEffect(() => {
     if (!svgRef.current || !s11) return;
@@ -150,7 +145,6 @@ export default function SmithChart({ s11 }: Props) {
       .attr('fill', 'none')
       .attr('clip-path', `circle(${R}px at ${CX}px ${CY}px)`);
 
-    // Start dot
     const p0 = s11.points[0];
     if (p0) {
       const [x0, y0] = gammaToXY(p0.re, p0.im);

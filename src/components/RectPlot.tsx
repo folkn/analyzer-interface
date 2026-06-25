@@ -6,12 +6,20 @@ import {
 import { useMarkerStore } from '../store/markerStore';
 import type { TraceData } from '../types';
 import { magDb, phaseDeg, interpolatePoint, formatFreq } from '../utils/sparams';
+import { getChartColors } from '../store/settingsStore';
+
+type ChartColors = ReturnType<typeof getChartColors>;
 
 interface Props {
   title: string;
   yLabel: string;
   mode: 'mag' | 'phase';
   traces: TraceData[];
+  yMin?: number;
+  yMax?: number;
+  showMajorGrid?: boolean;
+  showMinorGrid?: boolean;
+  colors: ChartColors;
 }
 
 function buildChartData(traces: TraceData[], mode: 'mag' | 'phase') {
@@ -37,12 +45,24 @@ function freqFormatter(hz: number) {
   return `${hz}`;
 }
 
-export default function RectPlot({ title, yLabel, mode, traces }: Props) {
+function makeTicks(lo: number, hi: number, step: number): number[] {
+  const ticks: number[] = [];
+  const start = Math.ceil(lo / step) * step;
+  for (let v = start; v <= hi + 1e-9; v += step)
+    ticks.push(parseFloat(v.toFixed(6)));
+  return ticks;
+}
+
+export default function RectPlot({
+  title, yLabel, mode, traces,
+  yMin, yMax,
+  showMajorGrid = true, showMinorGrid = false,
+  colors,
+}: Props) {
   const { markers, activeMarkerId, setActive, setMarkerFreq, addMarker } = useMarkerStore();
 
   const data = useMemo(() => buildChartData(traces, mode), [traces, mode]);
 
-  // Visible markers with values on at least one enabled trace
   const visibleMarkers = useMemo(
     () => markers.filter(m => m.visible),
     [markers],
@@ -61,7 +81,6 @@ export default function RectPlot({ title, yLabel, mode, traces }: Props) {
     [activeMarkerId, setMarkerFreq, addMarker],
   );
 
-  // Build reference lines for markers
   const markerLines = visibleMarkers.map(m => {
     const isActive = m.id === activeMarkerId;
     return (
@@ -84,7 +103,6 @@ export default function RectPlot({ title, yLabel, mode, traces }: Props) {
     );
   });
 
-  // Marker scatter dots on each trace
   const markerScatters = traces.filter(tr => tr.enabled).flatMap(tr =>
     visibleMarkers.map(m => {
       const pt = interpolatePoint(tr.points, m.freq);
@@ -132,26 +150,54 @@ export default function RectPlot({ title, yLabel, mode, traces }: Props) {
     return mode === 'mag' ? [`${v.toFixed(2)} dB`, n] : [`${v.toFixed(1)}°`, n];
   };
 
+  // Grid and tick configuration
+  const yStepMajor = mode === 'mag' ? 10 : 60;
+  const yStepMinor = mode === 'mag' ? 5 : 30;
+  const yMinD = yMin !== undefined ? yMin : (mode === 'mag' ? -40 : -180);
+  const yMaxD = yMax !== undefined ? yMax : (mode === 'mag' ? 20 : 180);
+
+  const yTicks = showMinorGrid
+    ? makeTicks(yMinD, yMaxD, yStepMinor)
+    : undefined;
+  const yTickFmt = (v: number) =>
+    showMinorGrid ? (v % yStepMajor === 0 ? String(v) : '') : String(v);
+
+  const gridStroke = showMinorGrid
+    ? colors.gridMinor
+    : showMajorGrid ? colors.gridMajor : 'transparent';
+  const gridDash = showMinorGrid ? '1 3' : '3 3';
+  const showGrid = showMajorGrid || showMinorGrid;
+
   return (
     <div className="plot-container">
       <div className="plot-title">{title}</div>
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart data={data} onClick={handleChartClick} style={{ cursor: 'crosshair' }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
+          <CartesianGrid
+            strokeDasharray={gridDash}
+            stroke={showGrid ? gridStroke : 'transparent'}
+            strokeOpacity={showGrid ? 1 : 0}
+          />
           <XAxis
             dataKey="freq"
             xAxisId="freq"
             tickFormatter={freqFormatter}
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: colors.tick, fontSize: 11 }}
             type="number"
             scale="linear"
             domain={['dataMin', 'dataMax']}
+            stroke={colors.gridMajor}
           />
           <YAxis
             yAxisId="val"
-            label={{ value: yLabel, angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 11 }}
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            label={{ value: yLabel, angle: -90, position: 'insideLeft', fill: colors.tick, fontSize: 11 }}
+            tick={{ fill: colors.tick, fontSize: 11 }}
+            tickFormatter={yTickFmt}
+            ticks={yTicks}
             width={55}
+            domain={[yMin ?? 'auto', yMax ?? 'auto']}
+            allowDataOverflow={yMin !== undefined || yMax !== undefined}
+            stroke={colors.gridMajor}
           />
           {traces.filter(tr => tr.enabled).map(tr => (
             <Line
@@ -171,10 +217,14 @@ export default function RectPlot({ title, yLabel, mode, traces }: Props) {
           <Tooltip
             formatter={tooltipFormatter}
             labelFormatter={v => formatFreq(Number(v))}
-            contentStyle={{ background: '#1e1e2e', border: '1px solid #333', borderRadius: 4 }}
-            labelStyle={{ color: '#e2e8f0' }}
+            contentStyle={{
+              background: colors.tooltipBg,
+              border: `1px solid ${colors.tooltipBorder}`,
+              borderRadius: 4,
+            }}
+            labelStyle={{ color: colors.tooltipLabel }}
           />
-          <Legend wrapperStyle={{ color: '#9ca3af', fontSize: 12, paddingTop: 4 }} />
+          <Legend wrapperStyle={{ color: colors.tick, fontSize: 12, paddingTop: 4 }} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
