@@ -12,6 +12,7 @@ import SettingsPanel from './components/SettingsPanel';
 import TuneMatch from './components/TuneMatch';
 import MriCoilTuner from './components/MriCoilTuner';
 import BFieldProbe from './components/BFieldProbe';
+import WaterfallPlot from './components/WaterfallPlot';
 import './App.css';
 
 export default function App() {
@@ -103,17 +104,20 @@ export default function App() {
 
       <div className={isSA ? 'plots-grid-sa' : 'plots-grid'}>
         {isSA ? (
-          <RectPlot
-            title="Spectrum — dBm"
-            yLabel="dBm"
-            mode="mag"
-            traces={spectrumTraces}
-            yMin={settings.saYMin}
-            yMax={settings.saYMax}
-            showMajorGrid={settings.showMajorGrid}
-            showMinorGrid={settings.showMinorGrid}
-            colors={colors}
-          />
+          <>
+            <RectPlot
+              title="Spectrum — dBm"
+              yLabel="dBm"
+              mode="mag"
+              traces={spectrumTraces}
+              yMin={settings.saYMin}
+              yMax={settings.saYMax}
+              showMajorGrid={settings.showMajorGrid}
+              showMinorGrid={settings.showMinorGrid}
+              colors={colors}
+            />
+            <WaterfallPlot saYMin={settings.saYMin} saYMax={settings.saYMax} />
+          </>
         ) : (
           <>
             <RectPlot

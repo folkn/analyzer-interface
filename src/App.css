@@ -1568,3 +1568,73 @@ body {
   .bfp-label { min-width: 140px; }
   .plots-grid-sa .plot-container { height: 260px; }
 }
+
+/* ── Waterfall Plot ────────────────────────────── */
+
+.wf-outer {
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--c-surface);
+  margin-top: 2px;
+}
+
+.wf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--c-border);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wf-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.wf-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wf-ctl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+
+.wf-select {
+  background: var(--c-input);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  color: var(--c-text);
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.wf-clear,
+.wf-toggle {
+  white-space: nowrap;
+}
+
+.wf-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+@media (max-width: 760px) {
+  .wf-controls { gap: 6px; }
+}
