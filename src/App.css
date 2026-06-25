@@ -990,3 +990,229 @@ body {
   font-size: 12px;
   color: var(--c-text);
 }
+
+/* ── MRI Coil Tuner ──────────────────────────── */
+
+.mri-tuner {
+  padding: 14px 16px;
+}
+
+.mri-cols {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .mri-cols { grid-template-columns: 1fr; }
+}
+
+.mri-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mri-sec-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.mri-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mri-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.mri-lbl {
+  font-size: 11px;
+  color: var(--c-text-dim);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mri-val {
+  font-size: 13px;
+  color: var(--c-text);
+}
+
+.mri-vswr-q {
+  font-size: 11px;
+  font-style: italic;
+  font-family: inherit;
+  opacity: 0.75;
+}
+
+.mri-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mri-form-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.mri-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.mri-preset {
+  background: var(--c-baud-bg);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.mri-preset:hover { background: var(--c-btn-hover); color: var(--c-text-hi); }
+.mri-preset.active {
+  background: #1e3a5f;
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+.mri-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--c-border);
+}
+
+.mri-req-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mri-req-label {
+  font-size: 11px;
+  color: var(--c-text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mri-req-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-text-hi);
+}
+
+.mri-dir {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+.mri-dec { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+.mri-inc { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+.mri-ok  { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+
+.mri-sug-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mri-sug-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mri-sug-hdr {
+  font-size: 10px;
+  color: var(--c-text-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mri-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mri-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--c-input);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--c-text-muted);
+  transition: border-color 0.12s;
+}
+.mri-chip.best {
+  border-color: #3b82f6;
+  background: rgba(59,130,246,0.08);
+  color: var(--c-text);
+}
+
+.mri-pct {
+  font-size: 10px;
+  color: var(--c-text-dim);
+}
+.mri-chip.best .mri-pct { color: #60a5fa; }
+
+.mri-par-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.mri-sym {
+  font-size: 15px;
+  color: var(--c-text-dim);
+  font-weight: 300;
+}
+
+.mri-par-total {
+  font-size: 13px;
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+.mri-no-data {
+  padding-top: 8px;
+}
+
+.mri-calc-panel {
+  border-left: 1px solid var(--c-border);
+  padding-left: 16px;
+}
+
+@media (max-width: 760px) {
+  .mri-calc-panel { border-left: none; padding-left: 0; border-top: 1px solid var(--c-border); padding-top: 14px; }
+}

@@ -10,6 +10,7 @@ import ConnectionBar from './components/ConnectionBar';
 import SweepPanel from './components/SweepPanel';
 import SettingsPanel from './components/SettingsPanel';
 import TuneMatch from './components/TuneMatch';
+import MriCoilTuner from './components/MriCoilTuner';
 import './App.css';
 
 export default function App() {
@@ -17,7 +18,7 @@ export default function App() {
   const connState = useSerialStore(s => s.connState);
   const { settings, update } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
-  const [showTuneMatch, setShowTuneMatch] = useState(false);
+  const [activeTool, setActiveTool] = useState<'tune-match' | 'mri-coil' | null>(null);
 
   // Apply theme to document root so CSS variables take effect
   useEffect(() => {
@@ -103,13 +104,20 @@ export default function App() {
       <div className="tools-panel">
         <div className="tools-tabs">
           <button
-            className={`tools-tab${showTuneMatch ? ' active' : ''}`}
-            onClick={() => setShowTuneMatch(v => !v)}
+            className={`tools-tab${activeTool === 'tune-match' ? ' active' : ''}`}
+            onClick={() => setActiveTool(v => v === 'tune-match' ? null : 'tune-match')}
           >
             ◎ Tune &amp; Match
           </button>
+          <button
+            className={`tools-tab${activeTool === 'mri-coil' ? ' active' : ''}`}
+            onClick={() => setActiveTool(v => v === 'mri-coil' ? null : 'mri-coil')}
+          >
+            ⊕ MRI Coil Tuner
+          </button>
         </div>
-        {showTuneMatch && <TuneMatch />}
+        {activeTool === 'tune-match' && <TuneMatch />}
+        {activeTool === 'mri-coil' && <MriCoilTuner />}
       </div>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
