@@ -215,3 +215,73 @@ export function computeAntennaMetrics(pts: SParamPoint[]): AntennaMetrics {
 
   return { resonantFreq, resonantS11dB, resonantVSWR, resonantZ, bw10dB, bw6dB, loadedQ };
 }
+
+// ── S21 coupling-probe metrics ────────────────────
+
+export interface S21Metrics {
+  peakFreq:   number;
+  peakS21dB:  number;
+  bw3dB:      BandEdges | null;
+  bw6dB:      BandEdges | null;
+  Q3dB:       number | null;
+}
+
+/** Find where S21 drops below thresh going away from the peak (opposite of S11 helper). */
+function findS21Edge(
+  pts: SParamPoint[],
+  mags: number[],
+  peakIdx: number,
+  threshDb: number,
+  direction: 'left' | 'right',
+): number | null {
+  if (direction === 'left') {
+    for (let i = peakIdx; i > 0; i--) {
+      if (mags[i - 1] <= threshDb) {
+        const t = (threshDb - mags[i]) / (mags[i - 1] - mags[i]);
+        return pts[i].freq + t * (pts[i - 1].freq - pts[i].freq);
+      }
+    }
+    return null;
+  } else {
+    for (let i = peakIdx; i < pts.length - 1; i++) {
+      if (mags[i + 1] <= threshDb) {
+        const t = (threshDb - mags[i]) / (mags[i + 1] - mags[i]);
+        return pts[i].freq + t * (pts[i + 1].freq - pts[i].freq);
+      }
+    }
+    return null;
+  }
+}
+
+/**
+ * Find the S21 peak (coupling-probe resonance) and its bandwidths.
+ * The resonant frequency is the S21 maximum; bandwidth is measured as
+ * the drop from that peak (−3 dB and −6 dB).
+ */
+export function computeS21Metrics(pts: SParamPoint[]): S21Metrics {
+  if (!pts.length) {
+    return { peakFreq: 0, peakS21dB: -Infinity, bw3dB: null, bw6dB: null, Q3dB: null };
+  }
+
+  const mags = pts.map(p => magDb(p.re, p.im));
+  let maxVal = mags[0], maxIdx = 0;
+  for (let i = 1; i < mags.length; i++) {
+    if (mags[i] > maxVal) { maxVal = mags[i]; maxIdx = i; }
+  }
+
+  const peakFreq  = pts[maxIdx].freq;
+  const peakS21dB = maxVal;
+
+  function getBW(dropDb: number): BandEdges | null {
+    const thresh = peakS21dB - dropDb;
+    const low  = findS21Edge(pts, mags, maxIdx, thresh, 'left');
+    const high = findS21Edge(pts, mags, maxIdx, thresh, 'right');
+    if (low === null || high === null) return null;
+    return { low, high, center: (low + high) / 2, bw: high - low };
+  }
+
+  const bw3dB = getBW(3);
+  const bw6dB = getBW(6);
+
+  return { peakFreq, peakS21dB, bw3dB, bw6dB, Q3dB: bw3dB ? peakFreq / bw3dB.bw : null };
+}

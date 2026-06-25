@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useMarkerStore } from '../store/markerStore';
-import { computeAntennaMetrics } from '../utils/matching';
+import { computeAntennaMetrics, computeS21Metrics } from '../utils/matching';
 import { formatFreq } from '../utils/sparams';
 
-// Standard capacitor series bases (1–10 pF range)
+// Standard capacitor series
 const E12_BASE = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
 const E24_BASE = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0,
                   3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1];
@@ -69,22 +69,32 @@ const MRI_PRESETS = [
 
 const SEGMENT_OPTIONS = [1, 2, 4, 6, 8, 10, 12, 16, 24, 32];
 
+type ProbeMode = 's11' | 's21';
+
 export default function MriCoilTuner() {
   const traces = useMarkerStore(s => s.traces);
+  const [probeMode, setProbeMode] = useState<ProbeMode>('s11');
   const [numSegments, setNumSegments] = useState(8);
   const [capInput, setCapInput]       = useState('56');
   const [targetInput, setTargetInput] = useState('127.74');
 
-  const s11pts  = useMemo(() => traces.s11?.points ?? [], [traces.s11]);
-  const metrics = useMemo(() => computeAntennaMetrics(s11pts), [s11pts]);
+  const s11pts = useMemo(() => traces.s11?.points ?? [], [traces.s11]);
+  const s21pts = useMemo(() => traces.s21?.points ?? [], [traces.s21]);
 
-  const capPf    = parseFloat(capInput)   || 0;
+  const s11metrics = useMemo(() => computeAntennaMetrics(s11pts), [s11pts]);
+  const s21metrics = useMemo(() => computeS21Metrics(s21pts),      [s21pts]);
+
+  const hasS11 = s11pts.length > 0 && s11metrics.resonantFreq > 0;
+  const hasS21 = s21pts.length > 0 && s21metrics.peakFreq > 0;
+  const hasData = probeMode === 's11' ? hasS11 : hasS21;
+
+  // Resonant frequency comes from either S11 dip or S21 peak
+  const fCurrent = probeMode === 's11' ? s11metrics.resonantFreq : s21metrics.peakFreq;
+
+  const capPf    = parseFloat(capInput)    || 0;
   const targetHz = parseFloat(targetInput) * 1e6 || 0;
-  const fCurrent = metrics.resonantFreq;
-  const hasData  = s11pts.length > 0 && fCurrent > 0;
 
-  // Estimated loop inductance from measured resonant frequency + known cap config
-  // For N equal caps in series: C_eff = C_each / N  →  L = 1 / (ω² C_eff)
+  // Estimated loop inductance: C_eff = C_each / N_segments  →  L = 1/(ω² C_eff)
   const inductanceNh = useMemo(() => {
     if (!fCurrent || !capPf || !numSegments) return null;
     const omega = 2 * Math.PI * fCurrent;
@@ -92,8 +102,7 @@ export default function MriCoilTuner() {
     return 1e9 / (omega * omega * cEff);
   }, [fCurrent, capPf, numSegments]);
 
-  // Required cap per segment for target frequency (keeping N the same)
-  // C_new = C_old × (f_current / f_target)²
+  // Required cap per segment: C_new = C_old × (f_current / f_target)²
   const reqCapPf = useMemo(() => {
     if (!fCurrent || !targetHz || !capPf) return null;
     return capPf * (fCurrent / targetHz) ** 2;
@@ -108,45 +117,75 @@ export default function MriCoilTuner() {
     ? (freqDeltaMhz > 0.05 ? '↓ decrease cap' : freqDeltaMhz < -0.05 ? '↑ increase cap' : '✓ on target')
     : null;
 
-  const matchQuality = metrics.resonantVSWR <= 1.5 ? 'good'
-    : metrics.resonantVSWR <= 2.5 ? 'fair' : 'poor';
+  // S11 match quality (only relevant in S11 mode)
+  const matchQuality = s11metrics.resonantVSWR <= 1.5 ? 'good'
+    : s11metrics.resonantVSWR <= 2.5 ? 'fair' : 'poor';
 
   return (
     <div className="mri-tuner">
+
+      {/* ── Measurement mode selector ── */}
+      <div className="mri-mode-bar">
+        <span className="mri-mode-label">Measurement mode</span>
+        <button
+          className={`mri-mode-btn${probeMode === 's11' ? ' active' : ''}`}
+          onClick={() => setProbeMode('s11')}
+        >
+          S11 — Reflection
+          <span className="mri-mode-hint">dip = resonance</span>
+        </button>
+        <button
+          className={`mri-mode-btn${probeMode === 's21' ? ' active' : ''}`}
+          onClick={() => setProbeMode('s21')}
+          disabled={!hasS21 && s21pts.length === 0}
+        >
+          S21 — Coupling probe
+          <span className="mri-mode-hint">peak = resonance</span>
+        </button>
+      </div>
+
       <div className="mri-cols">
 
-        {/* ── Left: Live S11 measurements ── */}
+        {/* ── Left: Live measurements ── */}
         <div className="mri-panel">
-          <div className="mri-sec-title">Live Measurements</div>
+          <div className="mri-sec-title">
+            {probeMode === 's11' ? 'Live S11 Measurements' : 'Live S21 Coupling Probe'}
+          </div>
+
           {!hasData ? (
-            <p className="tm-empty">No S11 data available.</p>
-          ) : (
+            <p className="tm-empty">
+              {probeMode === 's21' && !hasS21
+                ? 'No S21 data. Ensure port 2 is connected to the coupling probe.'
+                : 'No data available.'}
+            </p>
+          ) : probeMode === 's11' ? (
+            /* S11 mode metrics */
             <div className="mri-metrics">
               <div className="mri-metric">
-                <span className="mri-lbl">Resonant freq</span>
-                <span className="mri-val mono">{formatFreq(fCurrent)}</span>
+                <span className="mri-lbl">Resonant freq (S11 dip)</span>
+                <span className="mri-val mono">{formatFreq(s11metrics.resonantFreq)}</span>
               </div>
               <div className="mri-metric">
-                <span className="mri-lbl">S11 at resonance</span>
-                <span className="mri-val mono">{metrics.resonantS11dB.toFixed(1)} dB</span>
+                <span className="mri-lbl">Return loss</span>
+                <span className="mri-val mono">{s11metrics.resonantS11dB.toFixed(1)} dB</span>
               </div>
               <div className="mri-metric">
-                <span className="mri-lbl">Match (VSWR)</span>
+                <span className="mri-lbl">VSWR</span>
                 <span className={`mri-val mono tm-${matchQuality === 'good' ? 'good' : matchQuality === 'fair' ? 'warn' : 'bad'}`}>
-                  {isFinite(metrics.resonantVSWR) ? metrics.resonantVSWR.toFixed(2) : '∞'}
+                  {isFinite(s11metrics.resonantVSWR) ? s11metrics.resonantVSWR.toFixed(2) : '∞'}
                   <span className="mri-vswr-q"> — {matchQuality}</span>
                 </span>
               </div>
-              {metrics.bw10dB && (
+              {s11metrics.bw10dB && (
                 <div className="mri-metric">
-                  <span className="mri-lbl">BW (−10 dB)</span>
-                  <span className="mri-val mono">{formatFreq(metrics.bw10dB.bw)}</span>
+                  <span className="mri-lbl">BW (−10 dB S11)</span>
+                  <span className="mri-val mono">{formatFreq(s11metrics.bw10dB.bw)}</span>
                 </div>
               )}
-              {metrics.loadedQ !== null && (
+              {s11metrics.loadedQ !== null && (
                 <div className="mri-metric">
                   <span className="mri-lbl">Loaded Q</span>
-                  <span className="mri-val mono">{metrics.loadedQ.toFixed(1)}</span>
+                  <span className="mri-val mono">{s11metrics.loadedQ.toFixed(1)}</span>
                 </div>
               )}
               {inductanceNh !== null && (
@@ -163,6 +202,59 @@ export default function MriCoilTuner() {
                   </span>
                 </div>
               )}
+            </div>
+          ) : (
+            /* S21 coupling probe mode metrics */
+            <div className="mri-metrics">
+              <div className="mri-metric">
+                <span className="mri-lbl">Resonant freq (S21 peak)</span>
+                <span className="mri-val mono">{formatFreq(s21metrics.peakFreq)}</span>
+              </div>
+              <div className="mri-metric">
+                <span className="mri-lbl">S21 peak (coupling level)</span>
+                <span className="mri-val mono">{s21metrics.peakS21dB.toFixed(1)} dB</span>
+              </div>
+              {s21metrics.bw3dB && (
+                <div className="mri-metric">
+                  <span className="mri-lbl">BW (−3 dB)</span>
+                  <span className="mri-val mono">{formatFreq(s21metrics.bw3dB.bw)}</span>
+                </div>
+              )}
+              {s21metrics.bw6dB && (
+                <div className="mri-metric">
+                  <span className="mri-lbl">BW (−6 dB)</span>
+                  <span className="mri-val mono">{formatFreq(s21metrics.bw6dB.bw)}</span>
+                </div>
+              )}
+              {s21metrics.Q3dB !== null && (
+                <div className="mri-metric">
+                  <span className="mri-lbl">Q (from −3 dB BW) ≈ Q<sub>u</sub></span>
+                  <span className="mri-val mono">{s21metrics.Q3dB.toFixed(1)}</span>
+                </div>
+              )}
+              {inductanceNh !== null && (
+                <div className="mri-metric">
+                  <span className="mri-lbl">Est. inductance</span>
+                  <span className="mri-val mono">{fmtNh(inductanceNh)}</span>
+                </div>
+              )}
+              {freqDeltaMhz !== null && Math.abs(freqDeltaMhz) > 0.01 && (
+                <div className="mri-metric">
+                  <span className="mri-lbl">Δ to target</span>
+                  <span className={`mri-val mono ${Math.abs(freqDeltaMhz) < 1 ? 'tm-good' : Math.abs(freqDeltaMhz) < 5 ? 'tm-warn' : 'tm-bad'}`}>
+                    {freqDeltaMhz > 0 ? '+' : ''}{freqDeltaMhz.toFixed(3)} MHz
+                  </span>
+                </div>
+              )}
+              {hasS11 && (
+                <div className="mri-metric mri-crossref">
+                  <span className="mri-lbl">S11 at probe resonance</span>
+                  <span className="mri-val mono">{s11metrics.resonantS11dB.toFixed(1)} dB</span>
+                </div>
+              )}
+              <p className="mri-probe-note">
+                Coupling probe Q ≈ unloaded Q when probe coupling is weak (S21 peak well below 0 dB).
+              </p>
             </div>
           )}
         </div>
@@ -213,7 +305,7 @@ export default function MriCoilTuner() {
             </div>
           </div>
 
-          {reqCapPf !== null && hasData && (
+          {reqCapPf !== null && hasData ? (
             <div className="mri-results">
               <div className="mri-req-row">
                 <span className="mri-req-label">Required cap / segment</span>
@@ -265,10 +357,12 @@ export default function MriCoilTuner() {
                 )}
               </div>
             </div>
-          )}
-
-          {!hasData && (
-            <p className="tm-empty mri-no-data">Connect a device or wait for demo data to enable cap suggestions.</p>
+          ) : (
+            <p className="tm-empty mri-no-data">
+              {!hasData
+                ? `Connect a device or switch to a mode with data to enable cap suggestions.`
+                : 'Enter cap value and target frequency above.'}
+            </p>
           )}
         </div>
       </div>
