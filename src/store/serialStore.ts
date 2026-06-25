@@ -3,6 +3,7 @@ import { SerialManager } from '../serial/SerialManager';
 import { NanoVNADriver } from '../serial/NanoVNADriver';
 import type { SweepParams } from '../serial/NanoVNADriver';
 import { useMarkerStore } from './markerStore';
+import { getSettings } from './settingsStore';
 import type { TraceData } from '../types';
 
 export type ConnState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -11,7 +12,10 @@ export type SweepState = 'idle' | 'scanning' | 'error';
 export const BAUD_RATES = [9600, 38400, 115200, 230400, 921600] as const;
 export const POINT_OPTIONS = [51, 101, 201, 301, 401, 501] as const;
 
-const DEFAULT_PARAMS: SweepParams = { startHz: 100e6, stopHz: 500e6, points: 101 };
+function defaultParams(): SweepParams {
+  const s = getSettings();
+  return { startHz: s.defaultStartHz, stopHz: s.defaultStopHz, points: s.defaultPoints };
+}
 
 interface SerialStore {
   connState: ConnState;
@@ -59,16 +63,18 @@ function sweepDataToTraces(
   };
 }
 
-export const useSerialStore = create<SerialStore>((set, get) => ({
+export const useSerialStore = create<SerialStore>((set, get) => {
+  const s = getSettings();
+  return {
   connState: 'disconnected',
   sweepState: 'idle',
   deviceInfo: '',
   errorMsg: '',
-  sweepParams: DEFAULT_PARAMS,
+  sweepParams: defaultParams(),
   autoSweep: false,
-  autoIntervalMs: 2000,
+  autoIntervalMs: s.defaultAutoIntervalMs,
   lastSweepMs: null,
-  baudRate: 115200,
+  baudRate: s.defaultBaudRate,
   hasSerial: typeof navigator !== 'undefined' && 'serial' in navigator,
 
   async connect() {
@@ -136,4 +142,5 @@ export const useSerialStore = create<SerialStore>((set, get) => ({
   setBaudRate(b) {
     set({ baudRate: b });
   },
-}));
+  };
+});

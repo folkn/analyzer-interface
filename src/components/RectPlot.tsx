@@ -12,6 +12,8 @@ interface Props {
   yLabel: string;
   mode: 'mag' | 'phase';
   traces: TraceData[];
+  yMin?: number;
+  yMax?: number;
 }
 
 function buildChartData(traces: TraceData[], mode: 'mag' | 'phase') {
@@ -37,7 +39,7 @@ function freqFormatter(hz: number) {
   return `${hz}`;
 }
 
-export default function RectPlot({ title, yLabel, mode, traces }: Props) {
+export default function RectPlot({ title, yLabel, mode, traces, yMin, yMax }: Props) {
   const { markers, activeMarkerId, setActive, setMarkerFreq, addMarker } = useMarkerStore();
 
   const data = useMemo(() => buildChartData(traces, mode), [traces, mode]);
@@ -152,6 +154,8 @@ export default function RectPlot({ title, yLabel, mode, traces }: Props) {
             label={{ value: yLabel, angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 11 }}
             tick={{ fill: '#9ca3af', fontSize: 11 }}
             width={55}
+            domain={[yMin ?? 'auto', yMax ?? 'auto']}
+            allowDataOverflow={yMin !== undefined || yMax !== undefined}
           />
           {traces.filter(tr => tr.enabled).map(tr => (
             <Line
