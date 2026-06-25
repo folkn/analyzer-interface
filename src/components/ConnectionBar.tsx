@@ -7,9 +7,14 @@ const DOT_COLOR: Record<string, string> = {
   error:        '#ef4444',
 };
 
+const DEVICE_BADGE: Record<string, string> = {
+  nanovna: 'NanoVNA',
+  tinySA:  'TinySA',
+};
+
 export default function ConnectionBar() {
   const {
-    connState, deviceInfo, errorMsg, baudRate,
+    connState, deviceInfo, deviceType, errorMsg, baudRate,
     hasSerial, connect, disconnect, setBaudRate,
   } = useSerialStore();
 
@@ -30,11 +35,16 @@ export default function ConnectionBar() {
       <div className="conn-left">
         <span className="status-dot" style={{ background: DOT_COLOR[connState] }} />
         <span className="status-label">
-          {connState === 'connected'   ? (deviceInfo || 'Connected') :
-           connState === 'connecting'  ? 'Connecting…' :
-           connState === 'error'       ? `Error: ${errorMsg}` :
-                                         'Disconnected'}
+          {connState === 'connected'  ? (deviceInfo || 'Connected') :
+           connState === 'connecting' ? 'Connecting…' :
+           connState === 'error'      ? `Error: ${errorMsg}` :
+                                        'Disconnected'}
         </span>
+        {isConnected && deviceType && (
+          <span className={`device-badge ${deviceType}`}>
+            {DEVICE_BADGE[deviceType] ?? deviceType}
+          </span>
+        )}
       </div>
 
       <div className="conn-right">

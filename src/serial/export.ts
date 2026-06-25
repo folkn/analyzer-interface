@@ -42,6 +42,15 @@ export function toCSV(s11: TraceData, s21: TraceData): string {
   return rows.join('\n');
 }
 
+/** Export SA spectrum as CSV */
+export function toSACSV(sa: TraceData): string {
+  const rows = ['Freq_Hz,Level_dBm'];
+  for (const p of sa.points) {
+    rows.push(`${Math.round(p.freq)},${magDb(p.re, p.im).toFixed(4)}`);
+  }
+  return rows.join('\n');
+}
+
 export function downloadText(content: string, filename: string) {
   const blob = new Blob([content], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);

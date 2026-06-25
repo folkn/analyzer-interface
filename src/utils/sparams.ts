@@ -53,6 +53,7 @@ export function computeMarkerValues(
   freq: number,
   s11Trace: TraceData | undefined,
   s21Trace: TraceData | undefined,
+  saTrace?: TraceData,
 ): MarkerValues {
   const vals: MarkerValues = {};
 
@@ -73,6 +74,11 @@ export function computeMarkerValues(
       vals.s21MagDb = magDb(pt.re, pt.im);
       vals.s21PhaseDeg = phaseDeg(pt.re, pt.im);
     }
+  }
+
+  if (saTrace?.enabled) {
+    const pt = interpolatePoint(saTrace.points, freq);
+    if (pt) vals.saLevelDbm = magDb(pt.re, pt.im);
   }
 
   return vals;

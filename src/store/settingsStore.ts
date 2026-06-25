@@ -3,18 +3,25 @@ import { create } from 'zustand';
 const STORAGE_KEY = 'spa-settings-v1';
 
 export interface AppSettings {
-  // Sweep defaults
+  // Sweep defaults (VNA)
   defaultStartHz: number;
   defaultStopHz: number;
   defaultPoints: number;
   defaultAutoIntervalMs: number;
   defaultBaudRate: number;
-  maxPtsPerSeg: number;       // NanoVNA per-scan limit; multi-seg kicks in above this
-  // Plot axes
+  maxPtsPerSeg: number;
+  // Plot axes — VNA
   magYMin: number;
   magYMax: number;
   phaseYMin: number;
   phaseYMax: number;
+  // Plot axes — SA
+  saYMin: number;
+  saYMax: number;
+  // SA options
+  saRbwKhz: number;          // 0 = auto
+  // Device / demo mode
+  deviceMode: 'vna' | 'sa'; // used for demo when disconnected
   // Appearance
   theme: 'dark' | 'light';
   showMajorGrid: boolean;
@@ -32,6 +39,10 @@ export const FACTORY_DEFAULTS: AppSettings = {
   magYMax: 20,
   phaseYMin: -180,
   phaseYMax: 180,
+  saYMin: -90,
+  saYMax: 0,
+  saRbwKhz: 0,
+  deviceMode: 'vna',
   theme: 'dark',
   showMajorGrid: true,
   showMinorGrid: false,

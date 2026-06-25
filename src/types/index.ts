@@ -23,6 +23,7 @@ export interface MarkerValues {
   s11Re?: number;
   s11Im?: number;
   vswr?: number;
+  saLevelDbm?: number;
 }
 
 export interface Marker {
@@ -39,3 +40,4 @@ export interface Marker {
 }
 
 export type PlotType = 's11mag' | 's21mag' | 's11phase' | 's21phase' | 'smith';
+export type DeviceType = 'nanovna' | 'tinySA' | null;

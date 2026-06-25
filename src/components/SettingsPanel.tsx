@@ -70,6 +70,69 @@ export default function SettingsPanel({ onClose }: Props) {
 
         <div className="settings-body">
 
+          {/* ── Device mode ────────────────────────────── */}
+          <section className="sf-section">
+            <div className="sf-section-title">Device Mode (Demo)</div>
+            <div className="sf-grid">
+              <label className="sf-label">Default mode</label>
+              <div className="sf-row">
+                <label className="sf-radio">
+                  <input type="radio" name="devmode" value="vna"
+                    checked={settings.deviceMode === 'vna'}
+                    onChange={() => update({ deviceMode: 'vna' })} />
+                  VNA (NanoVNA)
+                </label>
+                <label className="sf-radio">
+                  <input type="radio" name="devmode" value="sa"
+                    checked={settings.deviceMode === 'sa'}
+                    onChange={() => update({ deviceMode: 'sa' })} />
+                  Spectrum Analyzer (TinySA)
+                </label>
+              </div>
+              <label className="sf-label" style={{ gridColumn: '1 / -1', color: 'var(--c-text-muted)', fontSize: 11 }}>
+                When disconnected, controls which demo data is shown. Auto-detected on connect.
+              </label>
+            </div>
+          </section>
+
+          {/* ── SA Settings ─────────────────────────────── */}
+          <section className="sf-section">
+            <div className="sf-section-title">Spectrum Analyzer (TinySA)</div>
+            <div className="sf-grid">
+              <label className="sf-label">SA Y min</label>
+              <div className="sf-row">
+                <input type="number" className="sf-input"
+                  value={settings.saYMin} min={-140} max={-10} step={5}
+                  onChange={e => update({ saYMin: Number(e.target.value) })} />
+                <span className="sf-unit">dBm</span>
+              </div>
+
+              <label className="sf-label">SA Y max</label>
+              <div className="sf-row">
+                <input type="number" className="sf-input"
+                  value={settings.saYMax} min={-30} max={0} step={5}
+                  onChange={e => update({ saYMax: Number(e.target.value) })} />
+                <span className="sf-unit">dBm</span>
+              </div>
+
+              <label className="sf-label">Default RBW</label>
+              <div className="sf-row">
+                <select className="sf-select"
+                  value={settings.saRbwKhz}
+                  onChange={e => update({ saRbwKhz: Number(e.target.value) })}>
+                  <option value={0}>Auto</option>
+                  <option value={3}>3 kHz</option>
+                  <option value={10}>10 kHz</option>
+                  <option value={30}>30 kHz</option>
+                  <option value={100}>100 kHz</option>
+                  <option value={300}>300 kHz</option>
+                  <option value={1000}>1 MHz</option>
+                  <option value={3000}>3 MHz</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
           {/* ── Appearance ─────────────────────────────── */}
           <section className="sf-section">
             <div className="sf-section-title">Appearance</div>

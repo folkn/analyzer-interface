@@ -1,4 +1,6 @@
 import { useMarkerStore } from '../store/markerStore';
+import { useSerialStore } from '../store/serialStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { formatFreq, formatVal } from '../utils/sparams';
 
 export default function MarkerTable() {
@@ -7,8 +9,13 @@ export default function MarkerTable() {
     setMarkerVisible, setMarkerName, searchPeak, searchValley, addMarker, traces,
   } = useMarkerStore();
 
-  const midFreq = traces.s11?.points
-    ? traces.s11.points[Math.floor(traces.s11.points.length / 2)]?.freq ?? 1e8
+  const deviceType = useSerialStore(s => s.deviceType);
+  const deviceMode = useSettingsStore(s => s.settings.deviceMode);
+  const isSA = deviceType === 'tinySA' || (!deviceType && deviceMode === 'sa');
+
+  const refTrace = traces.s11 ?? traces.s21 ?? traces.sa;
+  const midFreq = refTrace?.points
+    ? refTrace.points[Math.floor(refTrace.points.length / 2)]?.freq ?? 1e8
     : 1e8;
 
   return (
@@ -17,10 +24,19 @@ export default function MarkerTable() {
         <span className="section-title">Markers</span>
         <div className="marker-actions">
           <button className="btn-sm" onClick={() => addMarker(midFreq)}>+ Add</button>
-          <button className="btn-sm" onClick={() => searchPeak('s11')}>Peak S11</button>
-          <button className="btn-sm" onClick={() => searchValley('s11')}>Min S11</button>
-          <button className="btn-sm" onClick={() => searchPeak('s21')}>Peak S21</button>
-          <button className="btn-sm" onClick={() => searchValley('s21')}>Min S21</button>
+          {isSA ? (
+            <>
+              <button className="btn-sm" onClick={() => searchPeak('sa')}>Peak</button>
+              <button className="btn-sm" onClick={() => searchValley('sa')}>Valley</button>
+            </>
+          ) : (
+            <>
+              <button className="btn-sm" onClick={() => searchPeak('s11')}>Peak S11</button>
+              <button className="btn-sm" onClick={() => searchValley('s11')}>Min S11</button>
+              <button className="btn-sm" onClick={() => searchPeak('s21')}>Peak S21</button>
+              <button className="btn-sm" onClick={() => searchValley('s21')}>Min S21</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -33,11 +49,17 @@ export default function MarkerTable() {
               <th>Vis</th>
               <th>Name</th>
               <th>Frequency</th>
-              <th>S11 (dB)</th>
-              <th>S11 ∠</th>
-              <th>VSWR</th>
-              <th>S21 (dB)</th>
-              <th>S21 ∠</th>
+              {isSA ? (
+                <th>Level (dBm)</th>
+              ) : (
+                <>
+                  <th>S11 (dB)</th>
+                  <th>S11 ∠</th>
+                  <th>VSWR</th>
+                  <th>S21 (dB)</th>
+                  <th>S21 ∠</th>
+                </>
+              )}
               <th></th>
             </tr>
           </thead>
@@ -67,11 +89,17 @@ export default function MarkerTable() {
                     />
                   </td>
                   <td className="mono">{formatFreq(m.freq)}</td>
-                  <td className="mono">{formatVal(m.values.s11MagDb, ' dB')}</td>
-                  <td className="mono">{formatVal(m.values.s11PhaseDeg, '°')}</td>
-                  <td className="mono">{formatVal(m.values.vswr, '', 2)}</td>
-                  <td className="mono">{formatVal(m.values.s21MagDb, ' dB')}</td>
-                  <td className="mono">{formatVal(m.values.s21PhaseDeg, '°')}</td>
+                  {isSA ? (
+                    <td className="mono">{formatVal(m.values.saLevelDbm, ' dBm')}</td>
+                  ) : (
+                    <>
+                      <td className="mono">{formatVal(m.values.s11MagDb, ' dB')}</td>
+                      <td className="mono">{formatVal(m.values.s11PhaseDeg, '°')}</td>
+                      <td className="mono">{formatVal(m.values.vswr, '', 2)}</td>
+                      <td className="mono">{formatVal(m.values.s21MagDb, ' dB')}</td>
+                      <td className="mono">{formatVal(m.values.s21PhaseDeg, '°')}</td>
+                    </>
+                  )}
                   <td>
                     <button
                       className="btn-del"

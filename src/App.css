@@ -1216,3 +1216,355 @@ body {
 @media (max-width: 760px) {
   .mri-calc-panel { border-left: none; padding-left: 0; border-top: 1px solid var(--c-border); padding-top: 14px; }
 }
+
+/* ── Device mode button ───────────────────────── */
+
+.btn-device-mode {
+  background: var(--c-baud-bg);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-device-mode:hover { background: var(--c-btn-hover); color: var(--c-text-hi); }
+.btn-device-mode.sa-active { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.1); }
+
+/* ── Device badge in ConnectionBar ───────────── */
+
+.device-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.device-badge.nanovna { color: #3b82f6; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); }
+.device-badge.tinySA  { color: #f59e0b; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); }
+
+/* ── SA single-plot layout ────────────────────── */
+
+.plots-grid-sa {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.plots-grid-sa .plot-container {
+  height: 320px;
+}
+.plots-grid-sa .recharts-responsive-container {
+  height: 290px !important;
+}
+
+/* ── Freq Presets ─────────────────────────────── */
+
+.freq-presets {
+  position: relative;
+  align-self: flex-end;
+}
+
+.btn-presets {
+  background: var(--c-baud-bg);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn-presets:hover { background: var(--c-btn-hover); color: var(--c-text-hi); }
+
+.presets-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  min-width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.preset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--c-text);
+  font-size: 12px;
+  text-align: left;
+  gap: 10px;
+  transition: background 0.1s;
+}
+.preset-item:hover { background: var(--c-hover); }
+
+.preset-label { font-weight: 600; white-space: nowrap; }
+.preset-note  { color: var(--c-text-muted); font-size: 10px; white-space: nowrap; }
+
+/* ── TinySA Calibration Modal ─────────────────── */
+
+.cal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-modal {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 10px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+
+.cal-modal-title {
+  padding: 14px 16px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-hi);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.cal-modal-body {
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--c-text);
+  line-height: 1.6;
+}
+.cal-modal-body ol { padding-left: 16px; margin-top: 8px; }
+.cal-modal-body li { margin-bottom: 6px; }
+
+.cal-result {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: 5px;
+  color: #22c55e;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.cal-modal-footer {
+  padding: 10px 16px 14px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--c-border);
+}
+
+/* ── B Field Probe ────────────────────────────── */
+
+.bfp {
+  padding: 14px 0 0;
+  border-top: 1px solid var(--c-border);
+}
+
+.bfp-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.bfp-tab {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--c-border);
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--c-text-muted);
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.bfp-tab:hover { background: var(--c-hover); color: var(--c-text); }
+.bfp-tab.active { background: var(--c-active-row); color: var(--c-text-hi); border-color: var(--c-border-hi); }
+
+.bfp-warn {
+  color: #f59e0b;
+  font-size: 12px;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── B Field Live Reading ─────────────────────── */
+
+.bfp-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 480px;
+}
+
+.bfp-marker-info {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--c-border);
+  margin-bottom: 4px;
+}
+
+.bfp-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.bfp-result { margin-top: 6px; }
+
+.bfp-label {
+  min-width: 180px;
+  color: var(--c-text-muted);
+  font-size: 12px;
+}
+
+.bfp-val { font-size: 12px; }
+.bfp-big { font-size: 18px; font-weight: 700; color: #f59e0b; }
+
+.bfp-divider {
+  height: 1px;
+  background: var(--c-border);
+  margin: 8px 0;
+}
+
+/* ── B Field Calibration Table ────────────────── */
+
+.bfp-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bfp-cal-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bfp-cal-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.bfp-cal-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.bfp-import-btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.bfp-cal-tbl {
+  width: 100%;
+  max-width: 400px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.bfp-cal-tbl th {
+  text-align: left;
+  padding: 4px 6px;
+  color: var(--c-text-muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--c-border);
+}
+.bfp-cal-tbl td { padding: 3px 4px; }
+
+.bfp-cal-input {
+  width: 90px;
+  background: var(--c-input);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  color: var(--c-text);
+  font-size: 12px;
+  padding: 3px 6px;
+  font-family: monospace;
+}
+.bfp-cal-input:focus { outline: none; border-color: var(--c-border-hi); }
+
+.bfp-cal-add-row td { padding-top: 6px; }
+
+.bfp-cal-note {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  max-width: 420px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+/* ── B Field Time Graph ───────────────────────── */
+
+.bfp-graph {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bfp-graph-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bfp-graph-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.bfp-graph-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.active-btn {
+  background: rgba(239,68,68,0.15) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.bfp-canvas {
+  width: 100%;
+  max-width: 720px;
+  height: 200px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  display: block;
+}
+
+.bfp-graph-status {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  font-family: monospace;
+}
+
+@media (max-width: 760px) {
+  .bfp-label { min-width: 140px; }
+  .plots-grid-sa .plot-container { height: 260px; }
+}
