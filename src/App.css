@@ -1,0 +1,169 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0d1a;
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.app-subtitle {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.plots-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.plot-container {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 12px 8px 8px;
+}
+
+.plot-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  padding-left: 8px;
+}
+
+/* Marker table */
+.marker-table-container {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.marker-table-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.marker-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-sm:hover { background: #273449; color: #e2e8f0; }
+
+.marker-empty {
+  color: #475569;
+  font-size: 12px;
+  padding: 8px 4px;
+}
+
+.marker-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.marker-tbl th {
+  color: #64748b;
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #1e293b;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.marker-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.marker-row:hover { background: #1a2234; }
+.marker-row.active { background: #192035; }
+.marker-row td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #0f172a;
+  color: #cbd5e1;
+  vertical-align: middle;
+}
+
+.marker-name-input {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #334155;
+  color: #e2e8f0;
+  font-size: 12px;
+  width: 60px;
+  outline: none;
+  padding: 1px 2px;
+}
+.marker-name-input:focus { border-bottom-color: #60a5fa; }
+
+.mono { font-family: 'JetBrains Mono', 'Fira Mono', monospace; }
+
+.btn-del {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 4px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+.btn-del:hover { color: #ef4444; background: #1e1a1a; }
+
+@media (max-width: 900px) {
+  .plots-grid { grid-template-columns: 1fr; }
+}

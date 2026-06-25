@@ -1,0 +1,3 @@
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: #0d0d1a; }
+#root { width: 100%; min-height: 100vh; }
