@@ -125,7 +125,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
           tlog(`Connected: TinySA — ${info}`, 'ok');
         } else {
           drv = new NanoVNADriver(mgr);
-          drv.deviceInfo = info;
+          drv.setDeviceInfo(info);
           tinyDrv = null;
           set({ connState: 'connected', deviceInfo: info, deviceType: 'nanovna' });
           tlog(`Connected: NanoVNA — ${info}`, 'ok');

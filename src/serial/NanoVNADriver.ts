@@ -12,19 +12,27 @@ export interface SweepData {
   s21: Array<{ re: number; im: number }>;
 }
 
+type SweepMode = 'sweep' | 'scan' | 'scan_mask';
+
 export class NanoVNADriver {
   readonly mgr: SerialManager;
   deviceInfo = 'Unknown device';
+  private sweepMode: SweepMode = 'scan';
 
   constructor(manager: SerialManager) {
     this.mgr = manager;
+  }
+
+  setDeviceInfo(info: string) {
+    this.deviceInfo = info;
+    this.sweepMode = detectSweepMode(info);
   }
 
   async identify(): Promise<string> {
     await this.mgr.command('', 3000).catch(() => null);
     await this.mgr.flush(100);
     const raw = await this.mgr.command('version', 3000);
-    this.deviceInfo = raw.replace(/\r/g, '').trim() || 'NanoVNA';
+    this.setDeviceInfo(raw.replace(/\r/g, '').trim() || 'NanoVNA');
     return this.deviceInfo;
   }
 
@@ -32,9 +40,25 @@ export class NanoVNADriver {
   async scan(params: SweepParams): Promise<SweepData> {
     const { startHz, stopHz, points } = params;
     const timeoutMs = Math.max(20_000, points * 60 + 8_000);
-    const cmd = `scan ${Math.round(startHz)} ${Math.round(stopHz)} ${points} 3`;
-    const raw = await this.mgr.command(cmd, timeoutMs);
-    return parseResponse(raw, startHz, stopHz, points);
+    const start = Math.round(startHz);
+    const stop = Math.round(stopHz);
+
+    if (this.sweepMode === 'scan_mask') {
+      const freqRaw = await this.mgr.command(`scan ${start} ${stop} ${points} 0b001`, timeoutMs);
+      const dataRaw = await this.mgr.command(`scan ${start} ${stop} ${points} 0b110`, timeoutMs);
+      return parseMaskedScanResponse(freqRaw, dataRaw, startHz, stopHz, points);
+    }
+
+    const sweepCmd =
+      this.sweepMode === 'scan'
+        ? `scan ${start} ${stop} ${points}`
+        : `sweep ${start} ${stop} ${points}`;
+    await this.mgr.command(sweepCmd, timeoutMs);
+
+    const freqRaw = await this.mgr.command('frequencies', timeoutMs);
+    const s11Raw = await this.mgr.command('data 0', timeoutMs);
+    const s21Raw = await this.mgr.command('data 1', timeoutMs);
+    return parseDataResponses(freqRaw, s11Raw, s21Raw, startHz, stopHz, points);
   }
 
   /** Multi-segment scan — splits into ceil(points/maxPerSeg) sequential sweeps */
@@ -73,25 +97,88 @@ export class NanoVNADriver {
   }
 }
 
-function parseResponse(raw: string, startHz: number, stopHz: number, points: number): SweepData {
-  const freqs: number[] = [];
+function detectSweepMode(deviceInfo: string): SweepMode {
+  const match = deviceInfo.match(/(\d+)\.(\d+)\.(\d+)/);
+  if (!match) return 'scan';
+  const [major, minor, patch] = match.slice(1).map(Number);
+  if (major > 0 || minor > 7 || (minor === 7 && patch >= 1)) return 'scan_mask';
+  if (major > 0 || minor >= 2) return 'scan';
+  return 'sweep';
+}
+
+function cleanLines(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map((line) => line.trim().replace(/\r/g, ''))
+    .filter((line) => line && !line.startsWith('!') && !line.startsWith('#'));
+}
+
+function parseFrequencyLines(raw: string, fallbackStartHz: number, fallbackStopHz: number, points: number): number[] {
+  const parsed = cleanLines(raw)
+    .filter((line) => !/^(scan|sweep|frequencies)\b/i.test(line))
+    .map((line) => Number(line))
+    .filter((value) => Number.isFinite(value));
+
+  if (parsed.length >= points) return parsed.slice(0, points);
+
+  const step = points > 1 ? (fallbackStopHz - fallbackStartHz) / (points - 1) : 0;
+  return Array.from({ length: points }, (_, index) => fallbackStartHz + index * step);
+}
+
+function parseComplexLines(raw: string, commandName: string): Array<{ re: number; im: number }> {
+  return cleanLines(raw)
+    .filter((line) => !line.toLowerCase().startsWith(commandName))
+    .map((line) => {
+      const parts = line.split(/\s+/).map(Number);
+      if (parts.length < 2 || parts.some((value) => Number.isNaN(value))) return null;
+      return { re: parts[0], im: parts[1] };
+    })
+    .filter((value): value is { re: number; im: number } => value !== null);
+}
+
+function parseMaskedScanResponse(
+  freqRaw: string,
+  dataRaw: string,
+  startHz: number,
+  stopHz: number,
+  points: number,
+): SweepData {
+  const freqs = parseFrequencyLines(freqRaw, startHz, stopHz, points);
   const s11: SweepData['s11'] = [];
   const s21: SweepData['s21'] = [];
-  const step = points > 1 ? (stopHz - startHz) / (points - 1) : 0;
 
-  let idx = 0;
-  for (const line of raw.split('\n')) {
-    const t = line.trim().replace(/\r/g, '');
-    if (!t || t.startsWith('scan') || t.startsWith('!') || t.startsWith('#')) continue;
-    const parts = t.split(/\s+/);
-    if (parts.length < 4) continue;
-    const [re11, im11, re21, im21] = parts.map(Number);
-    if ([re11, im11, re21, im21].some(isNaN)) continue;
-    freqs.push(startHz + idx * step);
-    s11.push({ re: re11, im: im11 });
-    s21.push({ re: re21, im: im21 });
-    if (++idx >= points) break;
+  for (const line of cleanLines(dataRaw)) {
+    if (!line.toLowerCase().startsWith('scan')) {
+      const parts = line.split(/\s+/).map(Number);
+      if (parts.length < 4 || parts.some((value) => Number.isNaN(value))) continue;
+      s11.push({ re: parts[0], im: parts[1] });
+      s21.push({ re: parts[2], im: parts[3] });
+      if (s11.length >= points) break;
+    }
   }
 
-  return { freqs, s11, s21 };
+  return {
+    freqs: freqs.slice(0, Math.min(freqs.length, s11.length, s21.length)),
+    s11: s11.slice(0, Math.min(freqs.length, s11.length, s21.length)),
+    s21: s21.slice(0, Math.min(freqs.length, s11.length, s21.length)),
+  };
+}
+
+function parseDataResponses(
+  freqRaw: string,
+  s11Raw: string,
+  s21Raw: string,
+  startHz: number,
+  stopHz: number,
+  points: number,
+): SweepData {
+  const freqs = parseFrequencyLines(freqRaw, startHz, stopHz, points);
+  const s11 = parseComplexLines(s11Raw, 'data 0');
+  const s21 = parseComplexLines(s21Raw, 'data 1');
+  const count = Math.min(freqs.length, s11.length, s21.length, points);
+  return {
+    freqs: freqs.slice(0, count),
+    s11: s11.slice(0, count),
+    s21: s21.slice(0, count),
+  };
 }

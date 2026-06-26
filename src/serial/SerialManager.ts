@@ -58,7 +58,7 @@ export class SerialManager {
   /** Send a command and return everything up to the next prompt */
   async command(cmd: string, timeoutMs = 15_000): Promise<string> {
     if (!this.writer) throw new Error('Port not open');
-    await this.writer.write(this.enc.encode(cmd + '\r\n'));
+    await this.writer.write(this.enc.encode(cmd + '\r'));
     return this.waitForPrompt(timeoutMs);
   }
 

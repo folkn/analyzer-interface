@@ -267,11 +267,17 @@ command(cmd: string, timeoutMs: number): Promise<string>
 Sends `cmd + '\r'`, collects bytes until the prompt (`'ch> '`) or timeout,
 returns accumulated string. All drivers go through this.
 
-### `NanoVNADriver` — VNA scan command
-```
-scan <startHz> <stopHz> <points> 3
-```
-Response: one line per point — `re11 im11 re21 im21` (space-separated floats).
+### `NanoVNADriver` — VNA sweep commands
+- Newer NanoVNA firmware (`>= 0.7.1`) uses scan masks:
+  - `scan <startHz> <stopHz> <points> 0b001` → frequency list
+  - `scan <startHz> <stopHz> <points> 0b110` → one line per point:
+    `re11 im11 re21 im21`
+- Mid-generation firmware (`>= 0.2.0`) uses:
+  - `scan <startHz> <stopHz> <points>`
+  - then `frequencies`, `data 0`, `data 1`
+- Older firmware falls back to:
+  - `sweep <startHz> <stopHz> <points>`
+  - then `frequencies`, `data 0`, `data 1`
 
 ### `TinySADriver` — SA scan command
 ```
