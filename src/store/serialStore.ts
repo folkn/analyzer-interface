@@ -205,7 +205,8 @@ export const useSerialStore = create<SerialStore>((set, get) => {
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        set({ sweepState: 'error', errorMsg: msg, connState: 'error', autoSweep: false });
+        clearAuto();
+        set({ sweepState: 'error', errorMsg: msg, autoSweep: false });
         tlog(`Sweep error: ${msg}`, 'error');
       }
     },

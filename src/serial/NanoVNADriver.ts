@@ -34,7 +34,12 @@ export class NanoVNADriver {
     const timeoutMs = Math.max(20_000, points * 60 + 8_000);
     const cmd = `scan ${Math.round(startHz)} ${Math.round(stopHz)} ${points} 3`;
     const raw = await this.mgr.command(cmd, timeoutMs);
-    return parseResponse(raw, startHz, stopHz, points);
+    const result = parseResponse(raw, startHz, stopHz, points);
+    if (result.freqs.length === 0) {
+      const preview = raw.trim().slice(0, 120) || '(empty)';
+      throw new Error(`No data received from NanoVNA. Device responded: ${preview}`);
+    }
+    return result;
   }
 
   /** Multi-segment scan — splits into ceil(points/maxPerSeg) sequential sweeps */
