@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { useMarkerStore } from '../store/markerStore';
 import type { TraceData } from '../types';
+import type { SquareWaveOverlay } from '../utils/squareWave';
 import { magDb, phaseDeg, interpolatePoint, formatFreq } from '../utils/sparams';
 import { getChartColors } from '../store/settingsStore';
 
@@ -20,6 +21,7 @@ interface Props {
   showMajorGrid?: boolean;
   showMinorGrid?: boolean;
   colors: ChartColors;
+  squareWaveOverlay?: SquareWaveOverlay | null;
 }
 
 function buildChartData(traces: TraceData[], mode: 'mag' | 'phase') {
@@ -58,6 +60,7 @@ export default function RectPlot({
   yMin, yMax,
   showMajorGrid = true, showMinorGrid = false,
   colors,
+  squareWaveOverlay,
 }: Props) {
   const { markers, activeMarkerId, setActive, setMarkerFreq, addMarker } = useMarkerStore();
 
@@ -168,6 +171,70 @@ export default function RectPlot({
   const gridDash = showMinorGrid ? '1 3' : '3 3';
   const showGrid = showMajorGrid || showMinorGrid;
 
+  // Square-wave overlay — only on magnitude plot
+  const sqwLines = (mode === 'mag' && squareWaveOverlay)
+    ? squareWaveOverlay.harmonics.filter(h => h.inRange).map(h => (
+        <ReferenceLine
+          key={`sqw-ref-${h.order}`}
+          x={h.freq}
+          stroke={squareWaveOverlay.color}
+          strokeOpacity={squareWaveOverlay.opacity * 0.55}
+          strokeWidth={1}
+          strokeDasharray="3 3"
+          label={{
+            value: h.order === 1 ? 'F₁' : `${h.order}F₁`,
+            position: 'insideTopLeft',
+            fill: squareWaveOverlay.color,
+            fillOpacity: squareWaveOverlay.opacity,
+            fontSize: 9,
+            fontWeight: 600,
+          }}
+        />
+      ))
+    : [];
+
+  const sqwIdealPoints =
+    mode === 'mag' && squareWaveOverlay
+      ? squareWaveOverlay.harmonics
+          .filter(h => h.inRange && isFinite(h.idealDb))
+          .map(h => ({ freq: h.freq, __sqIdeal: h.idealDb, order: h.order }))
+      : [];
+
+  const sqwScatter =
+    sqwIdealPoints.length > 0 && squareWaveOverlay ? (
+      <Scatter
+        key="sqw-ideal"
+        xAxisId="freq"
+        yAxisId="val"
+        data={sqwIdealPoints}
+        legendType="none"
+        isAnimationActive={false}
+        shape={(props: any) => {
+          const { cx, cy, payload } = props;
+          if (!cx || !cy) return <g />;
+          const c = squareWaveOverlay.color;
+          const op = squareWaveOverlay.opacity;
+          const label = payload.order === 1 ? 'F₁' : `${payload.order}F₁`;
+          return (
+            <g>
+              {/* Horizontal tick mark at ideal level */}
+              <line x1={cx - 12} y1={cy} x2={cx + 12} y2={cy}
+                stroke={c} strokeWidth={2} strokeOpacity={op} />
+              {/* Diamond */}
+              <polygon
+                points={`${cx},${cy - 5} ${cx + 4},${cy} ${cx},${cy + 5} ${cx - 4},${cy}`}
+                fill={c} fillOpacity={op} />
+              {/* Label */}
+              <text x={cx + 9} y={cy - 5} fill={c} fillOpacity={op}
+                fontSize={9} fontWeight={600}>
+                {label}
+              </text>
+            </g>
+          );
+        }}
+      />
+    ) : null;
+
   return (
     <div className="plot-container">
       <div className="plot-title">{title}</div>
@@ -212,6 +279,8 @@ export default function RectPlot({
               isAnimationActive={false}
             />
           ))}
+          {sqwLines}
+          {sqwScatter}
           {markerLines}
           {markerScatters}
           <Tooltip

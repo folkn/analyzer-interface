@@ -8,6 +8,13 @@ import type { TraceData } from '../types';
 
 export type ConnState = 'disconnected' | 'connecting' | 'connected' | 'error';
 export type SweepState = 'idle' | 'scanning' | 'error';
+export type DeviceType = 'sa' | 'vna' | 'unknown';
+
+function detectDeviceType(info: string): DeviceType {
+  if (/tinySA/i.test(info)) return 'sa';
+  if (/nanoVNA|NanoVNA/i.test(info)) return 'vna';
+  return 'unknown';
+}
 
 export const BAUD_RATES = [9600, 38400, 115200, 230400, 921600] as const;
 export const POINT_OPTIONS = [51, 101, 202, 303, 404, 505, 1001] as const;
@@ -22,6 +29,7 @@ interface SerialStore {
   sweepState: SweepState;
   sweepSeg: { done: number; total: number };  // multi-segment progress
   deviceInfo: string;
+  deviceType: DeviceType;
   errorMsg: string;
   sweepParams: SweepParams;
   autoSweep: boolean;
@@ -71,6 +79,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
     sweepState: 'idle',
     sweepSeg: { done: 0, total: 1 },
     deviceInfo: '',
+    deviceType: 'unknown',
     errorMsg: '',
     sweepParams: defaultParams(),
     autoSweep: false,
@@ -86,7 +95,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
         await mgr.requestAndOpen(get().baudRate);
         drv = new NanoVNADriver(mgr);
         const info = await drv.identify();
-        set({ connState: 'connected', deviceInfo: info });
+        set({ connState: 'connected', deviceInfo: info, deviceType: detectDeviceType(info) });
         get().sweep();
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -101,7 +110,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
       set({ autoSweep: false });
       try { await mgr?.close(); } catch { /* ignore */ }
       mgr = null; drv = null;
-      set({ connState: 'disconnected', deviceInfo: '', sweepState: 'idle' });
+      set({ connState: 'disconnected', deviceInfo: '', deviceType: 'unknown', sweepState: 'idle' });
     },
 
     async sweep() {

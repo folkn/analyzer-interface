@@ -11,14 +11,19 @@ import SweepPanel from './components/SweepPanel';
 import SettingsPanel from './components/SettingsPanel';
 import TuneMatch from './components/TuneMatch';
 import MriCoilTuner from './components/MriCoilTuner';
+import SquareWaveAnalysis from './components/SquareWaveAnalysis';
+import type { SquareWaveOverlay } from './utils/squareWave';
 import './App.css';
 
 export default function App() {
   const { setTraces, traces } = useMarkerStore();
   const connState = useSerialStore(s => s.connState);
+  const deviceType = useSerialStore(s => s.deviceType);
   const { settings, update } = useSettingsStore();
+  const isSA = deviceType === 'sa';
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTool, setActiveTool] = useState<'tune-match' | 'mri-coil' | null>(null);
+  const [activeTool, setActiveTool] = useState<'tune-match' | 'mri-coil' | 'square-wave' | null>(null);
+  const [squareWaveOverlay, setSquareWaveOverlay] = useState<SquareWaveOverlay | null>(null);
 
   // Apply theme to document root so CSS variables take effect
   useEffect(() => {
@@ -32,6 +37,18 @@ export default function App() {
       setTraces({ s11: demo.s11, s21: demo.s21 });
     }
   }, [connState, settings.defaultStartHz, settings.defaultStopHz]);
+
+  // Clear square wave overlay when leaving that tool
+  useEffect(() => {
+    if (activeTool !== 'square-wave') setSquareWaveOverlay(null);
+  }, [activeTool]);
+
+  // Close square wave tool if device is no longer a spectrum analyzer
+  useEffect(() => {
+    if (!isSA && activeTool === 'square-wave') {
+      setActiveTool(null);
+    }
+  }, [isSA]);
 
   function toggleTheme() {
     const next = settings.theme === 'dark' ? 'light' : 'dark';
@@ -83,6 +100,7 @@ export default function App() {
           showMajorGrid={settings.showMajorGrid}
           showMinorGrid={settings.showMinorGrid}
           colors={colors}
+          squareWaveOverlay={squareWaveOverlay}
         />
         <RectPlot
           title="S11 / S21 — Phase"
@@ -115,9 +133,20 @@ export default function App() {
           >
             ⊕ MRI Coil Tuner
           </button>
+          {isSA && (
+            <button
+              className={`tools-tab${activeTool === 'square-wave' ? ' active' : ''}`}
+              onClick={() => setActiveTool(v => v === 'square-wave' ? null : 'square-wave')}
+            >
+              ∿ Square Wave
+            </button>
+          )}
         </div>
         {activeTool === 'tune-match' && <TuneMatch />}
         {activeTool === 'mri-coil' && <MriCoilTuner />}
+        {activeTool === 'square-wave' && isSA && (
+          <SquareWaveAnalysis onOverlayChange={setSquareWaveOverlay} />
+        )}
       </div>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
