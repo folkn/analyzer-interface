@@ -18,7 +18,9 @@ import './App.css';
 export default function App() {
   const { setTraces, traces } = useMarkerStore();
   const connState = useSerialStore(s => s.connState);
+  const deviceType = useSerialStore(s => s.deviceType);
   const { settings, update } = useSettingsStore();
+  const isSA = deviceType === 'sa';
   const [showSettings, setShowSettings] = useState(false);
   const [activeTool, setActiveTool] = useState<'tune-match' | 'mri-coil' | 'square-wave' | null>(null);
   const [squareWaveOverlay, setSquareWaveOverlay] = useState<SquareWaveOverlay | null>(null);
@@ -40,6 +42,13 @@ export default function App() {
   useEffect(() => {
     if (activeTool !== 'square-wave') setSquareWaveOverlay(null);
   }, [activeTool]);
+
+  // Close square wave tool if device is no longer a spectrum analyzer
+  useEffect(() => {
+    if (!isSA && activeTool === 'square-wave') {
+      setActiveTool(null);
+    }
+  }, [isSA]);
 
   function toggleTheme() {
     const next = settings.theme === 'dark' ? 'light' : 'dark';
@@ -124,16 +133,18 @@ export default function App() {
           >
             ⊕ MRI Coil Tuner
           </button>
-          <button
-            className={`tools-tab${activeTool === 'square-wave' ? ' active' : ''}`}
-            onClick={() => setActiveTool(v => v === 'square-wave' ? null : 'square-wave')}
-          >
-            ∿ Square Wave
-          </button>
+          {isSA && (
+            <button
+              className={`tools-tab${activeTool === 'square-wave' ? ' active' : ''}`}
+              onClick={() => setActiveTool(v => v === 'square-wave' ? null : 'square-wave')}
+            >
+              ∿ Square Wave
+            </button>
+          )}
         </div>
         {activeTool === 'tune-match' && <TuneMatch />}
         {activeTool === 'mri-coil' && <MriCoilTuner />}
-        {activeTool === 'square-wave' && (
+        {activeTool === 'square-wave' && isSA && (
           <SquareWaveAnalysis onOverlayChange={setSquareWaveOverlay} />
         )}
       </div>
