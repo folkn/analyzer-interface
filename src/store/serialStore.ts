@@ -5,7 +5,12 @@ import { TinySADriver } from '../serial/TinySADriver';
 import type { SweepParams } from '../serial/NanoVNADriver';
 import { useMarkerStore } from './markerStore';
 import { getSettings } from './settingsStore';
+import { useTerminalStore } from './terminalStore';
 import type { DeviceType, TraceData } from '../types';
+
+function tlog(text: string, level: 'info' | 'ok' | 'warn' | 'error' = 'info') {
+  useTerminalStore.getState().log(text, level);
+}
 
 export type ConnState = 'disconnected' | 'connecting' | 'connected' | 'error';
 export type SweepState = 'idle' | 'scanning' | 'error';
@@ -99,9 +104,11 @@ export const useSerialStore = create<SerialStore>((set, get) => {
 
     async connect() {
       set({ connState: 'connecting', errorMsg: '', deviceType: null });
+      tlog(`Connecting at ${get().baudRate} baud…`);
       try {
         mgr = new SerialManager();
         await mgr.requestAndOpen(get().baudRate);
+        tlog('Port opened');
 
         // Send a blank command to clear any pending state, then read version
         await mgr.command('', 3000).catch(() => null);
@@ -115,11 +122,13 @@ export const useSerialStore = create<SerialStore>((set, get) => {
           tinyDrv.deviceInfo = info;
           drv = null;
           set({ connState: 'connected', deviceInfo: info, deviceType: 'tinySA' });
+          tlog(`Connected: TinySA — ${info}`, 'ok');
         } else {
           drv = new NanoVNADriver(mgr);
           drv.deviceInfo = info;
           tinyDrv = null;
           set({ connState: 'connected', deviceInfo: info, deviceType: 'nanovna' });
+          tlog(`Connected: NanoVNA — ${info}`, 'ok');
         }
 
         get().sweep();
@@ -128,6 +137,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
         try { await mgr?.close(); } catch { /* ignore */ }
         mgr = null; drv = null; tinyDrv = null;
         set({ connState: 'error', errorMsg: msg });
+        tlog(`Connection error: ${msg}`, 'error');
       }
     },
 
@@ -137,6 +147,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
       try { await mgr?.close(); } catch { /* ignore */ }
       mgr = null; drv = null; tinyDrv = null;
       set({ connState: 'disconnected', deviceInfo: '', deviceType: null, sweepState: 'idle' });
+      tlog('Disconnected');
     },
 
     async sweep() {
@@ -195,6 +206,7 @@ export const useSerialStore = create<SerialStore>((set, get) => {
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         set({ sweepState: 'error', errorMsg: msg, connState: 'error', autoSweep: false });
+        tlog(`Sweep error: ${msg}`, 'error');
       }
     },
 
@@ -212,10 +224,15 @@ export const useSerialStore = create<SerialStore>((set, get) => {
 
     async calibrateTinySA() {
       if (!tinyDrv) return 'No TinySA connected';
+      tlog('Starting TinySA calibration…');
       try {
-        return await tinyDrv.calibrate();
+        const result = await tinyDrv.calibrate();
+        tlog(`Calibration: ${result}`, 'ok');
+        return result;
       } catch (e) {
-        return e instanceof Error ? e.message : 'Calibration failed';
+        const msg = e instanceof Error ? e.message : 'Calibration failed';
+        tlog(`Calibration error: ${msg}`, 'error');
+        return msg;
       }
     },
   };

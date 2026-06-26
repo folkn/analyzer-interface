@@ -13,6 +13,7 @@ import TuneMatch from './components/TuneMatch';
 import MriCoilTuner from './components/MriCoilTuner';
 import BFieldProbe from './components/BFieldProbe';
 import WaterfallPlot from './components/WaterfallPlot';
+import TerminalOutput from './components/TerminalOutput';
 import './App.css';
 
 export default function App() {
@@ -181,6 +182,8 @@ export default function App() {
       </div>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+
+      <TerminalOutput />
     </div>
   );
 }
